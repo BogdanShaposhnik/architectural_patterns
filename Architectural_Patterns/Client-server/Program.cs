@@ -2,75 +2,98 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace ClientServerExample
+namespace ClientServerPattern
 {
-    class Server
+    // Server class
+    public class Server
     {
-        public void Start(IPAddress ipAddress, int port)
-        {
-            TcpListener listener = new TcpListener(ipAddress, port);
-            listener.Start();
-            Console.WriteLine("Server started. Waiting for connections...");
+        private TcpListener listener;
 
-            try
+        public void Start()
+        {
+            listener = new TcpListener(IPAddress.Any, 8888);
+            listener.Start();
+            Console.WriteLine("Server started. Waiting for clients...");
+
+            while (true)
             {
                 TcpClient client = listener.AcceptTcpClient();
-                Console.WriteLine("Client connected.");
+                Task.Run(() => HandleClient(client));
+            }
+        }
 
-                NetworkStream stream = client.GetStream();
+        public void HandleClient(TcpClient client)
+        {
+            try
+            {
+                Console.WriteLine("Client connected: " + client.Client.RemoteEndPoint);
 
                 byte[] buffer = new byte[1024];
-                int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                string receivedData = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                Console.WriteLine($"Received data from client: {receivedData}");
+                int bytesRead;
+                NetworkStream stream = client.GetStream();
 
-                string responseData = "Hello from server!";
-                byte[] responseBuffer = Encoding.ASCII.GetBytes(responseData);
-                stream.Write(responseBuffer, 0, responseBuffer.Length);
-                Console.WriteLine("Response sent to client.");
+                while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    string data = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                    Console.WriteLine("Received from client: " + data);
 
-                client.Close();
+                    // Process the received data
+                    string response = ProcessData(data);
+
+                    // Send the response back to the client
+                    byte[] responseData = Encoding.ASCII.GetBytes(response);
+                    stream.Write(responseData, 0, responseData.Length);
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"An error occurred: {ex.Message}");
+                Console.WriteLine("Error: " + ex.Message);
             }
             finally
             {
-                listener.Stop();
-                Console.WriteLine("Server stopped.");
+                client.Close();
+                Console.WriteLine("Client disconnected: " + client.Client.RemoteEndPoint);
             }
+        }
+
+        private string ProcessData(string data)
+        {
+            // Process the received data and return a response
+            return "Processed: " + data.ToUpper();
         }
     }
 
-    class Client
+    // Client class
+    public class Client
     {
-        public void Connect(string serverIP, int port)
+        private TcpClient client;
+
+        public void Connect(string serverIp)
         {
-            try
-            {
-                TcpClient client = new TcpClient(serverIP, port);
-                Console.WriteLine("Connected to server.");
+            client = new TcpClient();
+            client.Connect(serverIp, 8888);
+            Console.WriteLine("Connected to server: " + client.Client.RemoteEndPoint);
+        }
 
-                NetworkStream stream = client.GetStream();
+        public void SendData(string data)
+        {
+            NetworkStream stream = client.GetStream();
+            byte[] buffer = Encoding.ASCII.GetBytes(data);
+            stream.Write(buffer, 0, buffer.Length);
+            Console.WriteLine("Sent to server: " + data);
 
-                string data = "Hello from client!";
-                byte[] buffer = Encoding.ASCII.GetBytes(data);
-                stream.Write(buffer, 0, buffer.Length);
-                Console.WriteLine("Data sent to server.");
+            byte[] responseBuffer = new byte[1024];
+            int bytesRead = stream.Read(responseBuffer, 0, responseBuffer.Length);
+            string response = Encoding.ASCII.GetString(responseBuffer, 0, bytesRead);
+            Console.WriteLine("Received from server: " + response);
+        }
 
-                buffer = new byte[1024];
-                int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                string responseData = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                Console.WriteLine($"Received response from server: {responseData}");
-
-                client.Close();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"An error occurred: {ex.Message}");
-            }
+        public void Disconnect()
+        {
+            client.Close();
+            Console.WriteLine("Disconnected from server.");
         }
     }
 
@@ -78,14 +101,22 @@ namespace ClientServerExample
     {
         static void Main(string[] args)
         {
-            IPAddress ipAddress = IPAddress.Parse("127.0.0.1");
-            int port = 8888;
-            Server server = new Server();
-            server.Start(ipAddress, port);
-            // Connect as client
-            string serverIP = "127.0.0.1";
-            Client client = new Client();
-            client.Connect(serverIP, port);
+            // Start the server
+            var server = new Server();
+            Task.Run(() => server.Start());
+
+            // Create a client and connect to the server
+            var client = new Client();
+            client.Connect("127.0.0.1");
+
+            // Send data to the server
+            client.SendData("Hello, server!");
+
+            // Disconnect from the server
+            client.Disconnect();
+
+            Console.WriteLine("Press any key to exit.");
+            Console.ReadKey();
         }
     }
 }
