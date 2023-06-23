@@ -9,18 +9,17 @@ namespace MasterSlavePattern.Tests
         public void TestMasterSlavePattern()
         {
             // Arrange
-            var taskQueue = new ConcurrentQueue<string>();
-            var master = new Master(taskQueue);
-            var slave = new Slave(taskQueue);
+            var master = new Master();
+
+            master.AddTask("Task 1");
+            master.AddTask("Task 2");
+            master.AddTask("Task 2");
 
             // Act
-            var masterTask = Task.Run(() => master.Start());
-            var slaveTask = Task.Run(() => slave.Start());
-
-            Task.WaitAll(masterTask, slaveTask);
+            master.ProcessTasks(3);
 
             // Assert
-            Assert.True(taskQueue.IsEmpty);
+            Assert.True(master.tasksQueue.IsEmpty);
         }
     }
 }

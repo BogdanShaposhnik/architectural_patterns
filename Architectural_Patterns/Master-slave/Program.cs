@@ -5,55 +5,78 @@ using System.Threading.Tasks;
 
 namespace MasterSlavePattern
 {
-    class Master
+    // Master class
+    public class Master
     {
-        private ConcurrentQueue<string> taskQueue;
+        public readonly ConcurrentQueue<string> tasksQueue = new ConcurrentQueue<string>();
+        public int slaveCount;
+        public volatile bool isStopped;
 
-        public Master(ConcurrentQueue<string> taskQueue)
+        public ConcurrentQueue<string> TasksQueue => tasksQueue;
+        public ConcurrentBag<string> ProcessedTasks { get; } = new ConcurrentBag<string>();
+
+        public void AddTask(string task)
         {
-            this.taskQueue = taskQueue;
+            Console.WriteLine($"Master adds task: {task}");
+            Thread.Sleep(100);
+            tasksQueue.Enqueue(task);
         }
 
-        public void Start()
+        public void ProcessTasks(int slaveCount)
         {
-            Console.WriteLine("Master thread started.");
+            this.slaveCount = slaveCount;
+            var slaves = new Task[slaveCount];
 
-            // Enqueue tasks
-            for (int i = 1; i <= 10; i++)
+            // Start the slave tasks
+            for (int i = 0; i < slaveCount; i++)
             {
-                string task = $"Task {i}";
-                taskQueue.Enqueue(task);
-                Console.WriteLine($"Master: Enqueued task '{task}'");
-                Thread.Sleep(1000); // Simulate delay between tasks
+                slaves[i] = Task.Run(() => SlaveTask());
             }
 
-            Console.WriteLine("Master thread finished.");
+            // Wait for all tasks to be processed
+            Task.WaitAll(slaves);
+        }
+
+        private void SlaveTask()
+        {
+            while (!isStopped && tasksQueue.TryDequeue(out string task))
+            {
+                // Process the task
+                Console.WriteLine($"Slave {Task.CurrentId} processing task: {task}");
+                Thread.Sleep(1000);
+
+                // Store the processed task
+                ProcessedTasks.Add(task);
+            }
         }
     }
 
-    class Slave
+    // Slave class
+    public class Slave
     {
-        private ConcurrentQueue<string> taskQueue;
+        private readonly Master master;
+        private readonly int id;
 
-        public Slave(ConcurrentQueue<string> taskQueue)
+        public Slave(Master master, int id)
         {
-            this.taskQueue = taskQueue;
+            this.master = master;
+            this.id = id;
         }
 
         public void Start()
         {
-            Console.WriteLine("Slave thread started.");
-
-            while (!taskQueue.IsEmpty)
+            while (!master.TasksQueue.IsEmpty)
             {
-                if (taskQueue.TryDequeue(out string task))
+                if (master.TasksQueue.TryDequeue(out string task))
                 {
-                    Console.WriteLine($"Slave: Processing task '{task}'");
-                    Thread.Sleep(2000); // Simulate task processing time
+                    // Process the task
+                    Console.WriteLine($"Slave {id} processing task: {task}");
+                    Thread.Sleep(1000);
+
+                    // Store the processed task
+                    master.ProcessedTasks.Add(task);
                 }
             }
-
-            Console.WriteLine("Slave thread finished.");
         }
     }
 
@@ -61,23 +84,17 @@ namespace MasterSlavePattern
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Master-Slave Pattern Example");
+            var master = new Master();
 
-            // Create a shared task queue
-            var taskQueue = new ConcurrentQueue<string>();
+            // Add tasks to the master
+            master.AddTask("Task 1");
+            master.AddTask("Task 2");
+            master.AddTask("Task 2");
 
-            // Create the master and slave instances
-            var master = new Master(taskQueue);
-            var slave = new Slave(taskQueue);
+            // Process tasks using 3 slave threads
+            master.ProcessTasks(3);
 
-            // Create the master and slave tasks
-            var masterTask = Task.Run(() => master.Start());
-            var slaveTask = Task.Run(() => slave.Start());
-
-            // Wait for the tasks to complete
-            Task.WaitAll(masterTask, slaveTask);
-
-            Console.WriteLine("Press any key to exit.");
+            Console.WriteLine("All tasks processed. Press any key to exit.");
             Console.ReadKey();
         }
     }
