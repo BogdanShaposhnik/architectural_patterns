@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Layered_Architecture", "Lay
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client-server", "Client-server\Client-server.csproj", "{B6B18232-409F-447E-BCF4-8D4854590B65}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Master-slave", "Master-slave\Master-slave.csproj", "{4687EEE3-9162-4B1E-97BA-0B8C4FEA08FF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{B6B18232-409F-447E-BCF4-8D4854590B65}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B6B18232-409F-447E-BCF4-8D4854590B65}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B6B18232-409F-447E-BCF4-8D4854590B65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4687EEE3-9162-4B1E-97BA-0B8C4FEA08FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4687EEE3-9162-4B1E-97BA-0B8C4FEA08FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4687EEE3-9162-4B1E-97BA-0B8C4FEA08FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4687EEE3-9162-4B1E-97BA-0B8C4FEA08FF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
